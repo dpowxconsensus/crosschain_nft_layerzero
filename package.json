@@ -1,0 +1,25 @@
+{
+  "name": "hardhat-project",
+  "scripts": {
+    "test": "npx hardhat test",
+    "prettier": "prettier --write test/**/*.js && prettier --write test/*/*/*.js && prettier --write deploy/*.js && prettier --write tasks/*.js && prettier --write contracts/**/*.sol && prettier --write contracts/**/**/*.sol && prettier --write contracts/**/**/**/*.sol",
+    "lint": "yarn prettier && solhint 'contracts/*.sol' && solhint 'contracts/**/*.sol' && solhint 'contracts/**/**/*.sol' && solhint 'contracts/**/**/**/*.sol'"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.1",
+    "@nomiclabs/hardhat-etherscan": "^3.1.5",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "hardhat": "^2.12.6",
+    "solidity-coverage": "^0.8.2"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.8.1",
+    "@openzeppelin/contracts-upgradeable": "^4.8.1",
+    "@openzeppelin/hardhat-upgrades": "^1.22.1",
+    "dotenv": "^16.0.3",
+    "hardhat-contract-sizer": "^2.7.0",
+    "hardhat-deploy": "^0.11.22",
+    "hardhat-deploy-ethers": "^0.3.0-beta.13",
+    "hardhat-gas-reporter": "^1.0.9"
+  }
+}
