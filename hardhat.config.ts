@@ -1,4 +1,4 @@
-require("dotenv").config();
+import dotenv from "dotenv";
 
 // require("hardhat-contract-sizer");
 require("@nomiclabs/hardhat-waffle");
@@ -9,36 +9,79 @@ require("@nomiclabs/hardhat-waffle");
 // require("hardhat-deploy-ethers");
 // require("@openzeppelin/hardhat-upgrades");
 
+import type { NetworkUserConfig } from "hardhat/types";
+dotenv.config();
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
-task("accounts", "Prints the list of accounts").setAction(
-  async (taskArgs: any, hre: any) => {
-    const accounts = await hre.ethers.getSigners();
-
-    for (const account of accounts) {
-      console.log(account.address);
-    }
-  }
-);
-
-function getMnemonic(networkName?: any) {
-  if (networkName) {
-    const mnemonic = process.env["MNEMONIC_" + networkName.toUpperCase()];
-    if (mnemonic && mnemonic !== "") {
-      return mnemonic;
-    }
-  }
-
-  const mnemonic = process.env.MNEMONIC;
-  if (!mnemonic || mnemonic === "") {
-    return "test test test test test test test test test test test junk";
-  }
-
-  return mnemonic;
+const mnemonic: string | undefined = process.env.MNEMONIC;
+if (!mnemonic) {
+  throw new Error("Please set your MNEMONIC in a .env file");
 }
 
-function accounts(chainKey?: any) {
-  return { mnemonic: getMnemonic(chainKey) };
+{/* prettier-ignore */}
+const chainIds: { [key: string]: number } = {
+  "arbitrum-mainnet": 42161,
+  "fantom-testnet": 4002,
+  "bsc-testnet": 97,
+  "arbitrum-goerli": 421613,
+  "optimism-goerli": 420,
+  "optimism-mainnet": 10,
+  "polygon-mainnet": 137,
+  "polygon-mumbai": 80001,
+  "avalanche": 43114,
+  "bsc": 56,
+  "hardhat": 31337,
+  "mainnet": 1,
+  "sepolia": 11155111,
+  "goerll": 5,
+  "fuji": 43113,
+  "fantom": 250,
+};
+
+const infuraApiKey: string | undefined = process.env.INFURA_API_KEY;
+if (!infuraApiKey) {
+  throw new Error("Please set your INFURA_API_KEY in a .env file");
+}
+
+function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
+  let jsonRpcUrl: string;
+  switch (chain) {
+    case "bsc-testnet":
+      jsonRpcUrl = "https://data-seed-prebsc-1-s1.binance.org:8545/";
+      break;
+    case "optimism-goerli":
+      jsonRpcUrl = "https://goerli.optimism.io/";
+      break;
+    case "arbitrum-goerli":
+      jsonRpcUrl = "https://goerli-rollup.arbitrum.io/rpc/";
+      break;
+    case "fantom-testnet":
+      jsonRpcUrl = "https://rpc.testnet.fantom.network/";
+      break;
+    case "fantom":
+      jsonRpcUrl = "https://rpcapi.fantom.network";
+      break;
+    case "fuji":
+      jsonRpcUrl = "https://api.avax-test.network/ext/bc/C/rpc";
+      break;
+    case "avalanche":
+      jsonRpcUrl = "https://api.avax.network/ext/bc/C/rpc";
+      break;
+    case "bsc":
+      jsonRpcUrl = "https://bsc-dataseed1.binance.org";
+      break;
+    default:
+      jsonRpcUrl = "https://" + chain + ".infura.io/v3/" + infuraApiKey;
+  }
+  return {
+    accounts: {
+      count: 10,
+      mnemonic,
+      path: "m/44'/60'/0'/0",
+    },
+    chainId: chainIds[chain],
+    url: jsonRpcUrl,
+  };
 }
 
 // You need to export an object to set up your config
@@ -88,76 +131,20 @@ module.exports = {
   },
 
   networks: {
-    ethereum: {
-      url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", // public infura endpoint
-      chainId: 1,
-      accounts: accounts(),
-    },
-    bsc: {
-      url: "https://bsc-dataseed1.binance.org",
-      chainId: 56,
-      accounts: accounts(),
-    },
-    avalanche: {
-      url: "https://api.avax.network/ext/bc/C/rpc",
-      chainId: 43114,
-      accounts: accounts(),
-    },
-    polygon: {
-      url: "https://rpc-mainnet.maticvigil.com",
-      chainId: 137,
-      accounts: accounts(),
-    },
-    arbitrum: {
-      url: `https://arb1.arbitrum.io/rpc`,
-      chainId: 42161,
-      accounts: accounts(),
-    },
-    optimism: {
-      url: `https://mainnet.optimism.io`,
-      chainId: 10,
-      accounts: accounts(),
-    },
-    fantom: {
-      url: `https://rpcapi.fantom.network`,
-      chainId: 250,
-      accounts: accounts(),
-    },
-
-    goerli: {
-      url: "https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", // public infura endpoint
-      chainId: 5,
-      accounts: accounts(),
-    },
-    "bsc-testnet": {
-      url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
-      chainId: 97,
-      accounts: accounts(),
-    },
-    fuji: {
-      url: `https://api.avax-test.network/ext/bc/C/rpc`,
-      chainId: 43113,
-      accounts: accounts(),
-    },
-    mumbai: {
-      url: "https://rpc-mumbai.maticvigil.com/",
-      chainId: 80001,
-      accounts: accounts(),
-    },
-    "arbitrum-goerli": {
-      url: `https://goerli-rollup.arbitrum.io/rpc/`,
-      chainId: 421613,
-      accounts: accounts(),
-    },
-    "optimism-goerli": {
-      url: `https://goerli.optimism.io/`,
-      chainId: 420,
-      accounts: accounts(),
-    },
-    "fantom-testnet": {
-      url: `https://rpc.testnet.fantom.network/`,
-      chainId: 4002,
-      accounts: accounts(),
-    },
+    arbitrum: getChainConfig("arbitrum-mainnet"),
+    avalanche: getChainConfig("avalanche"),
+    bsc: getChainConfig("bsc"),
+    mainnet: getChainConfig("mainnet"), // ethereum
+    optimism: getChainConfig("optimism-mainnet"),
+    "polygon-mainnet": getChainConfig("polygon-mainnet"),
+    "polygon-mumbai": getChainConfig("polygon-mumbai"),
+    sepolia: getChainConfig("sepolia"),
+    fuji: getChainConfig("fuji"),
+    goerli: getChainConfig("goerli"),
+    fantom: getChainConfig("fantom"),
+    bsctestnet: getChainConfig("bsc-testnet"),
+    arbitrumgoerli: getChainConfig("arbitrum-goerli"),
+    optimismgoerli: getChainConfig("optimismgoerli"),
+    fantomtestnet: getChainConfig("fantom-testnet"),
   },
 };
