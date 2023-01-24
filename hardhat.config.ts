@@ -94,6 +94,7 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
       mnemonic,
       path: "m/44'/60'/0'/0",
     },
+    timeout: 200000,
   };
 }
 
