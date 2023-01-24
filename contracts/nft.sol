@@ -8,8 +8,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./lzApp/NonblockingLzApp.sol";
 
-import "hardhat/console.sol";
-
 contract NFT is
     ERC721,
     ERC721URIStorage,

@@ -1,16 +1,28 @@
 import dotenv from "dotenv";
-
-// require("hardhat-contract-sizer");
+require("hardhat-contract-sizer");
 require("@nomiclabs/hardhat-waffle");
-// require(`@nomiclabs/hardhat-etherscan`);
-// require("solidity-coverage");
-// require("hardhat-gas-reporter");
-// require("hardhat-deploy");
-// require("hardhat-deploy-ethers");
-// require("@openzeppelin/hardhat-upgrades");
+require(`@nomiclabs/hardhat-etherscan`);
+require("solidity-coverage");
+require("hardhat-gas-reporter");
+require("hardhat-deploy");
+require("hardhat-deploy-ethers");
+require("@openzeppelin/hardhat-upgrades");
 
 import type { NetworkUserConfig } from "hardhat/types";
 dotenv.config();
+
+task(
+  "accounts",
+  "Prints the list of accounts",
+  async (taskArgs: any, hre: any) => {
+    const accounts = await hre.ethers.getSigners();
+
+    for (const account of accounts) {
+      console.log(account.address);
+    }
+  }
+);
+
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 const mnemonic: string | undefined = process.env.MNEMONIC;
@@ -33,7 +45,7 @@ const chainIds: { [key: string]: number } = {
   "hardhat": 31337,
   "mainnet": 1,
   "sepolia": 11155111,
-  "goerll": 5,
+  "goerli": 5,
   "fuji": 43113,
   "fantom": 250,
 };
@@ -73,14 +85,15 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
     default:
       jsonRpcUrl = "https://" + chain + ".infura.io/v3/" + infuraApiKey;
   }
+
   return {
+    url: jsonRpcUrl,
+    chainId: chainIds[chain],
     accounts: {
       count: 10,
       mnemonic,
       path: "m/44'/60'/0'/0",
     },
-    chainId: chainIds[chain],
-    url: jsonRpcUrl,
   };
 }
 
@@ -131,13 +144,16 @@ module.exports = {
   },
 
   networks: {
+    localhost: {
+      url: "http://127.0.0.1:8545",
+    },
     arbitrum: getChainConfig("arbitrum-mainnet"),
     avalanche: getChainConfig("avalanche"),
     bsc: getChainConfig("bsc"),
     mainnet: getChainConfig("mainnet"), // ethereum
     optimism: getChainConfig("optimism-mainnet"),
-    "polygon-mainnet": getChainConfig("polygon-mainnet"),
-    "polygon-mumbai": getChainConfig("polygon-mumbai"),
+    polygonmainnet: getChainConfig("polygon-mainnet"),
+    polygonmumbai: getChainConfig("polygon-mumbai"),
     sepolia: getChainConfig("sepolia"),
     fuji: getChainConfig("fuji"),
     goerli: getChainConfig("goerli"),
