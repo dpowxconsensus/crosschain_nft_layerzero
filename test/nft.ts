@@ -68,6 +68,7 @@ describe("NFT", function () {
     const [owner, otherAddress] = await ethers.getSigners();
     await this.nftSrc.safeMint(owner.address, "uri", {
       from: owner.address,
+      value: 1, // 1 wei required to mint
     });
     await owner.sendTransaction({
       to: this.nftSrc.address,

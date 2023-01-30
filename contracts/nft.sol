@@ -52,7 +52,8 @@ contract NFT is
         _setTokenURI(tokenId, uri);
     }
 
-    function safeMint(address to, string memory uri) public onlyOwner {
+    function safeMint(address to, string memory uri) public payable {
+        require(msg.value >= 1 wei, "1 wei required to mint");
         _safeMint(to, uri);
     }
 
