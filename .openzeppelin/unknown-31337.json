@@ -2,6 +2,16 @@
   "manifestVersion": "3.2",
   "proxies": [
     {
+      "address": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+      "txHash": "0x3f0301afc144f12bfb53dc67fc0f0bacb25c98a15ddd7762a4893c66002cee01",
+      "kind": "uups"
+    },
+    {
+      "address": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+      "txHash": "0x411680cb50b24d732fb2c4df36dd88712f5ccc7c978e980d9eaa6e90c91cc3ea",
+      "kind": "uups"
+    },
+    {
       "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
       "txHash": "0x4ca8b34653fed06751a43ffd7a82cb5aac5283e461d4590beedc52c95dd9dcd2",
       "kind": "uups"
@@ -12,13 +22,13 @@
       "kind": "uups"
     },
     {
-      "address": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
-      "txHash": "0x3f0301afc144f12bfb53dc67fc0f0bacb25c98a15ddd7762a4893c66002cee01",
+      "address": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+      "txHash": "0x1e264fde730ee1a6953d33a056d8c5faf7b0b6a4f6f618242a03159c194783e5",
       "kind": "uups"
     },
     {
-      "address": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
-      "txHash": "0x411680cb50b24d732fb2c4df36dd88712f5ccc7c978e980d9eaa6e90c91cc3ea",
+      "address": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
+      "txHash": "0x354d14276c897c54491ae4b03aa171e9381acece519840d7ed8f6157c92405cb",
       "kind": "uups"
     }
   ],
