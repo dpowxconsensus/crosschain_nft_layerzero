@@ -1,43 +1,49 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.2;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "../interfaces/ILayerZeroReceiver.sol";
-import "../interfaces/ILayerZeroUserApplicationConfig.sol";
-import "../interfaces/ILayerZeroEndpoint.sol";
-import "../util/BytesLib.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "../interfaces/ILayerZeroReceiverUpgradeable.sol";
+import "../interfaces/ILayerZeroUserApplicationConfigUpgradeable.sol";
+import "../interfaces/ILayerZeroEndpointUpgradeable.sol";
 
 /*
  * a generic LzReceiver implementation
  */
-abstract contract LzApp is
-    Ownable,
-    ILayerZeroReceiver,
-    ILayerZeroUserApplicationConfig
+abstract contract LzAppUpgradeable is
+    Initializable,
+    OwnableUpgradeable,
+    ILayerZeroReceiverUpgradeable,
+    ILayerZeroUserApplicationConfigUpgradeable
 {
-    using BytesLib for bytes;
-
-    ILayerZeroEndpoint public immutable lzEndpoint;
+    ILayerZeroEndpointUpgradeable public lzEndpoint;
     mapping(uint16 => bytes) public trustedRemoteLookup;
-    mapping(uint16 => mapping(uint16 => uint)) public minDstGasLookup;
-    address public precrime;
+    mapping(uint16 => mapping(uint => uint)) public minDstGasLookup;
 
-    event SetPrecrime(address precrime);
-    event SetTrustedRemote(uint16 _remoteChainId, bytes _path);
-    event SetTrustedRemoteAddress(uint16 _remoteChainId, bytes _remoteAddress);
-    event SetMinDstGas(uint16 _dstChainId, uint16 _type, uint _minDstGas);
+    event SetTrustedRemote(uint16 _srcChainId, bytes _srcAddress);
+    event SetMinDstGasLookup(
+        uint16 _dstChainId,
+        uint _type,
+        uint _dstGasAmount
+    );
 
-    constructor(address _endpoint) {
-        lzEndpoint = ILayerZeroEndpoint(_endpoint);
+    function __LzAppUpgradeable_init(
+        address _endpoint
+    ) internal onlyInitializing {
+        __LzAppUpgradeable_init_unchained(_endpoint);
+    }
+
+    function __LzAppUpgradeable_init_unchained(
+        address _endpoint
+    ) internal onlyInitializing {
+        lzEndpoint = ILayerZeroEndpointUpgradeable(_endpoint);
     }
 
     function lzReceive(
         uint16 _srcChainId,
-        bytes calldata _srcAddress,
+        bytes memory _srcAddress,
         uint64 _nonce,
-        bytes calldata _payload
+        bytes memory _payload
     ) public virtual override {
         // lzReceive must be called by the endpoint for security
         require(
@@ -49,7 +55,6 @@ abstract contract LzApp is
         // if will still block the message pathway from (srcChainId, srcAddress). should not receive message from untrusted remote.
         require(
             _srcAddress.length == trustedRemote.length &&
-                trustedRemote.length > 0 &&
                 keccak256(_srcAddress) == keccak256(trustedRemote),
             "LzApp: invalid source sending contract"
         );
@@ -70,15 +75,14 @@ abstract contract LzApp is
         bytes memory _payload,
         address payable _refundAddress,
         address _zroPaymentAddress,
-        bytes memory _adapterParams,
-        uint _nativeFee
+        bytes memory _adapterParams
     ) internal virtual {
         bytes memory trustedRemote = trustedRemoteLookup[_dstChainId];
         require(
             trustedRemote.length != 0,
             "LzApp: destination chain is not a trusted source"
         );
-        lzEndpoint.send{value: _nativeFee}(
+        lzEndpoint.send{value: msg.value}(
             _dstChainId,
             trustedRemote,
             _payload,
@@ -90,20 +94,19 @@ abstract contract LzApp is
 
     function _checkGasLimit(
         uint16 _dstChainId,
-        uint16 _type,
+        uint _type,
         bytes memory _adapterParams,
         uint _extraGas
-    ) internal view virtual {
-        uint providedGasLimit = _getGasLimit(_adapterParams);
+    ) internal view {
+        uint providedGasLimit = getGasLimit(_adapterParams);
         uint minGasLimit = minDstGasLookup[_dstChainId][_type] + _extraGas;
         require(minGasLimit > 0, "LzApp: minGasLimit not set");
         require(providedGasLimit >= minGasLimit, "LzApp: gas limit is too low");
     }
 
-    function _getGasLimit(
+    function getGasLimit(
         bytes memory _adapterParams
-    ) internal pure virtual returns (uint gasLimit) {
-        require(_adapterParams.length >= 34, "LzApp: invalid adapterParams");
+    ) public pure returns (uint gasLimit) {
         assembly {
             gasLimit := mload(add(_adapterParams, 34))
         }
@@ -150,48 +153,23 @@ abstract contract LzApp is
         lzEndpoint.forceResumeReceive(_srcChainId, _srcAddress);
     }
 
-    // _path = abi.encodePacked(remoteAddress, localAddress)
-    // this function set the trusted path for the cross-chain communication
+    // allow owner to set it multiple times.
     function setTrustedRemote(
         uint16 _srcChainId,
-        bytes calldata _path
+        bytes calldata _srcAddress
     ) external onlyOwner {
-        trustedRemoteLookup[_srcChainId] = _path;
-        emit SetTrustedRemote(_srcChainId, _path);
+        trustedRemoteLookup[_srcChainId] = _srcAddress;
+        emit SetTrustedRemote(_srcChainId, _srcAddress);
     }
 
-    function setTrustedRemoteAddress(
-        uint16 _remoteChainId,
-        bytes calldata _remoteAddress
-    ) external onlyOwner {
-        trustedRemoteLookup[_remoteChainId] = abi.encodePacked(
-            _remoteAddress,
-            address(this)
-        );
-        emit SetTrustedRemoteAddress(_remoteChainId, _remoteAddress);
-    }
-
-    function getTrustedRemoteAddress(
-        uint16 _remoteChainId
-    ) external view returns (bytes memory) {
-        bytes memory path = trustedRemoteLookup[_remoteChainId];
-        require(path.length != 0, "LzApp: no trusted path record");
-        return path.slice(0, path.length - 20); // the last 20 bytes should be address(this)
-    }
-
-    function setPrecrime(address _precrime) external onlyOwner {
-        precrime = _precrime;
-        emit SetPrecrime(_precrime);
-    }
-
-    function setMinDstGas(
+    function setMinDstGasLookup(
         uint16 _dstChainId,
-        uint16 _packetType,
-        uint _minGas
+        uint _type,
+        uint _dstGasAmount
     ) external onlyOwner {
-        require(_minGas > 0, "LzApp: invalid minGas");
-        minDstGasLookup[_dstChainId][_packetType] = _minGas;
-        emit SetMinDstGas(_dstChainId, _packetType, _minGas);
+        require(_dstGasAmount > 0, "LzApp: invalid _dstGasAmount");
+        minDstGasLookup[_dstChainId][_type] = _dstGasAmount;
+        emit SetMinDstGasLookup(_dstChainId, _type, _dstGasAmount);
     }
 
     //--------------------------- VIEW FUNCTION ----------------------------------------
@@ -202,4 +180,11 @@ abstract contract LzApp is
         bytes memory trustedSource = trustedRemoteLookup[_srcChainId];
         return keccak256(trustedSource) == keccak256(_srcAddress);
     }
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint[50] private __gap;
 }

@@ -3,8 +3,8 @@
 pragma solidity ^0.8.0;
 pragma abicoder v2;
 
-import "../interfaces/ILayerZeroReceiver.sol";
-import "../interfaces/ILayerZeroEndpoint.sol";
+import "./interfaces/ILayerZeroReceiver.sol";
+import "./interfaces/ILayerZeroEndpoint.sol";
 import "../libraries/LzLib.sol";
 
 /*

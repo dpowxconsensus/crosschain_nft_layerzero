@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 
 import config from "../utils/config";
 const { goerli, fuji, arbitriumGoerli } = config;
@@ -22,8 +22,12 @@ describe("NFT", function () {
 
     // create two nft instances
     const NFT = await ethers.getContractFactory("NFT");
-    this.nftSrc = await NFT.deploy(this.lzEndpointMockSrc.address);
-    this.nftDst = await NFT.deploy(this.lzEndpointMockDst.address);
+    this.nftSrc = await upgrades.deployProxy(NFT, [
+      this.lzEndpointMockSrc.address,
+    ]);
+    this.nftDst = await upgrades.deployProxy(NFT, [
+      this.lzEndpointMockDst.address,
+    ]);
 
     await this.lzEndpointMockSrc.setDestLzEndpoint(
       this.nftDst.address,

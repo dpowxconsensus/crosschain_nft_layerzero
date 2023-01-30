@@ -1,19 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "./lzApp/NonblockingLzApp.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
+import "./lzApp/NonblockingLzAppUpgradeable.sol";
 
 contract NFT is
-    ERC721,
-    ERC721URIStorage,
-    ERC721Burnable,
-    Ownable,
-    NonblockingLzApp
+    Initializable,
+    ERC721Upgradeable,
+    ERC721URIStorageUpgradeable,
+    ERC721BurnableUpgradeable,
+    OwnableUpgradeable,
+    UUPSUpgradeable,
+    NonblockingLzAppUpgradeable
 {
     event SendNFTCrossChain(
         address from,
@@ -29,13 +33,17 @@ contract NFT is
         uint256 tokenId
     );
 
-    using Counters for Counters.Counter;
+    using CountersUpgradeable for CountersUpgradeable.Counter;
+    CountersUpgradeable.Counter private _tokenIdCounter;
 
-    Counters.Counter private _tokenIdCounter;
-
-    constructor(
-        address _endpoint
-    ) ERC721("NFT", "SNFT") NonblockingLzApp(_endpoint) {}
+    function initialize(address _endpoint) public initializer {
+        __NonblockingLzAppUpgradeable_init(_endpoint);
+        __ERC721_init("NFT", "SNFT");
+        __ERC721URIStorage_init();
+        __ERC721Burnable_init();
+        __Ownable_init();
+        __UUPSUpgradeable_init();
+    }
 
     function _safeMint(address to, string memory uri) internal {
         uint256 tokenId = _tokenIdCounter.current();
@@ -48,17 +56,26 @@ contract NFT is
         _safeMint(to, uri);
     }
 
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
+
     // The following functions are overrides required by Solidity.
 
     function _burn(
         uint256 tokenId
-    ) internal override(ERC721, ERC721URIStorage) {
+    ) internal override(ERC721Upgradeable, ERC721URIStorageUpgradeable) {
         super._burn(tokenId);
     }
 
     function tokenURI(
         uint256 tokenId
-    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+    )
+        public
+        view
+        override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
+        returns (string memory)
+    {
         return super.tokenURI(tokenId);
     }
 
@@ -94,9 +111,8 @@ contract NFT is
             _dstChainId, // destination chainId
             payload, // abi.encode()'ed bytes
             payable(this), // (msg.sender will be this contract) refund address (LayerZero will refund any extra gas back to caller of send()
-            address(0x0), // future param, unused for this example
-            adapterParams, // v1 adapterParams, specify custom destination gas qty
-            msg.value
+            address(0x0), // future param, _zroPaymentAddress
+            adapterParams // v1 adapterParams, specify custom destination gas qty
         );
         emit SendNFTCrossChain(msg.sender, to, _dstChainId, tokenId);
         _burn(tokenId); // burn the nft on src chain
@@ -129,6 +145,7 @@ contract NFT is
         emit NFTReceivedFromChain(from, to, _srcChainId, tokenId);
     }
 
-    // allow this contract to receive ether
+    // mint nft to receipent user
+
     receive() external payable {}
 }
