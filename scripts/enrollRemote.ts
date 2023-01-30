@@ -1,4 +1,4 @@
-import { ethers, network } from "hardhat";
+const { ethers, network } = require("hardhat");
 
 import { abi, bytecode } from "../artifacts/contracts/nft.sol/NFT.json";
 

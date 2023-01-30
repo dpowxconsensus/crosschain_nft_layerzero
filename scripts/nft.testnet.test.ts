@@ -3,13 +3,36 @@ import { assert } from "console";
 
 import deploy from "./../deploy/artifacts/deploy.json";
 
-const { ethers, upgrades } = require("hardhat");
-
+const { ethers } = require("hardhat");
 import chainIds from "./../constants/chainIds.json";
 
 import { abi, bytecode } from "./../artifacts/contracts/nft.sol/NFT.json";
+import Spinner from "./../utils/spinner";
+
+import axios from "axios";
+const URLS = {
+  testnet: "https://api-testnet.layerzero-scan.com",
+  mainnet: "https://api-mainnet.layerzero-scan.com",
+  sandbox: "https://api-sandbox.layerzero-scan.com",
+};
+export const createClient = (env, options) => {
+  const url = URLS[env];
+  if (!url) throw new Error(`No endpoint for env ${env}`);
+  const client = axios.create({
+    baseURL: url,
+  });
+  return {
+    async getMessagesBySrcTxHash(srcTxHash) {
+      if (!srcTxHash) throw new Error("srcTxHash must be provided");
+      const { data } = await client.get(`/tx/${srcTxHash}`);
+      return data;
+    },
+  };
+};
 
 async function main() {
+  const client = createClient("testnet", {});
+
   const localChain = "goerli";
   const remoteChain = "fuji";
   const jsonURLLocalChain =
@@ -56,6 +79,21 @@ async function main() {
     );
   };
 
+  const waitForMessage = (txHash) => {
+    return new Promise((resolve, reject) => {
+      setInterval(async () => {
+        client.getMessagesBySrcTxHash(txHash).then(async (result) => {
+          if (!result.messages.length) return;
+          if (result.messages[0].status == "FAILED") {
+            reject(result.messages[0]);
+          } else if (result.messages[0].status == "DELIVERED") {
+            resolve(result.messages[0]);
+          } else console.log("Relayer: message is inflight");
+        });
+      }, 2000); // every 2sec
+    });
+  };
+
   const testNFTFLOW = async () => {
     tx = await nftSrcContract
       .connect(signerOrigin)
@@ -92,10 +130,15 @@ async function main() {
       "SRC chain: nft transfer went successfull on src chain, let's wait for message to be delivered to dst chain"
     );
 
-    /*
-        after it recceived on destination chain, have wait little more before it delivered to dst chain
-    */
-    nftOwner = await nftDstContract.ownerOf(0);
+    // getting empty message array for a while
+    // new Spinner().spin("dots");
+    // const message = await waitForMessage(tx.hash);
+    // console.log(
+    //   "DST chain: transaction went on dst chain with tx hash ",
+    //   message.dstTxHash
+    // );
+
+    nftOwner = await nftDstContract.ownerOf(tokenId);
     assert(
       nftOwner == signerOrigin.address,
       "srcchain: minted to someone else"
